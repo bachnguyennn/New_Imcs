@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyi
+*.pyz
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# OS
+.DS_Store
+
+# Editors/IDE
+.vscode/
+.idea/
+
+# Streamlit
+.streamlit/
+
+# Logs and outputs
+*.log
+*.tmp
+*.cache/
+
+# Data (uncomment if you generate large outputs)
+# data/
+# outputs/
+
+# Jupyter
+.ipynb_checkpoints/
+
+
