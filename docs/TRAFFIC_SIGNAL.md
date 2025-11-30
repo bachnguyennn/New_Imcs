@@ -25,6 +25,30 @@ High-level steps:
 
 This yields a single cycle length `C` and a green-time dictionary `{phase: seconds}`.
 
+## Plain‑language quick guide
+
+What it does (in simple words):
+- Splits the green time between roads based on how busy each road is.
+- Accounts for “lost time” (startup/clearance between greens) so the sum of greens actually fits in one cycle.
+
+Why it matters:
+- It gives you a fast, explainable starting plan without running a full simulation.
+- It’s a well‑known baseline that’s near‑optimal for average delay when traffic is below capacity.
+
+Key terms made simple:
+- Saturation flow (veh/hour): maximum “serving speed” of a lane group if it stayed green the whole time (typical ≈ 1800 veh/h per lane under good conditions). It’s a rate, not a total.
+- green_s (seconds): how many seconds of green each road gets per cycle (the usable green; lost time is separate).
+
+How the numbers are sized (no formulas):
+1) Turn your arrivals (λ) into cars/hour for each road.
+2) Figure out how busy each road is compared to its serving speed (more demand → bigger share).
+3) Choose a cycle length that leaves room for the in‑between “lost time.” For roundabouts, we trim the classic value a bit.
+4) Give each road a slice of the effective green proportional to how busy it is, making sure each gets a small minimum.
+
+Tiny example:
+- Suppose N=400, E=300, S=300, W=200 veh/h; saturation flow=1800; lost time per phase=4 s; 4 phases; roundabout factor=0.9.
+- The method picks a cycle around 75–80 s; effective green is cycle minus lost time (~16 s), then splits those green seconds roughly in the ratio of the demands (N gets the most, W the least).
+
 ## Inputs and outputs (code contract)
 
 Class: `ModifiedWebsterRoundabout`
@@ -58,7 +82,7 @@ print(greens)
    - Saturation flow (veh/hr),
    - Lost time per phase (s),
    - Roundabout factor (0.5–1.0).
-4. Click “Compute signal plan”. The main pane shows:
+4. Either turn on “Auto‑update signal plan” (recomputes as you change inputs) or click “Compute signal plan”. The main pane shows:
    - Cycle length (seconds),
    - A table of green_s per approach (N/E/S/W) and the flows used (veh/hr),
    - A bar chart of green seconds.
@@ -72,6 +96,18 @@ For flows `N=300, E=200, S=250, W=150` veh/hr, default parameters often yield so
 - `greens ≈ {"N": 12.07, "E": 8.04, "S": 10.06, "W": 6.03}`
 
 Exact values will depend on your chosen parameters (saturation flow, lost times, reduction factor, min/max cycle, min green).
+
+## What do `green_s` and `flow_vph` mean?
+
+- `green_s` (seconds): The allocated green time for that approach per cycle, as computed by the Modified Webster allocator. It represents the usable green (excluding lost time). If you sum `green_s` across all approaches, it’s roughly the effective green `C − L`, subject to minimum green enforcement and any re‑normalization.
+
+- `flow_vph` (vehicles per hour): The demand used for planning for each approach. The app converts your entered Poisson rates λ (veh/s) to veh/hr via `flow_vph = λ × 3600`. These values are used to compute the critical flow ratios `y_i = flow_vph_i / saturation_flow` that drive the green split.
+
+Related notes:
+- The reported cycle length is `C`; total lost time per cycle is `L ≈ lost_time_per_phase × number_of_phases`.
+- Share of the whole cycle for an approach: `green_s / C`.
+- Share of the effective (non‑lost) portion: `green_s / (C − L)`.
+- `flow_vph` is the input planning volume, not the simulated throughput (the sim’s throughput appears in the charts/tables after you run the microsim).
 
 ## Tuning tips
 - If `Y = sum(flow_i/saturation_flow)` gets close to 1.0, the cycle can grow large; adjust `saturation_flow` or `lost_time_per_phase`, or cap with `max_cycle`.
